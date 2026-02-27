@@ -513,6 +513,7 @@
 </head>
 <body>
 
+
 <!-- Background Fluido Dark Novedoso -->
 <div class="bg-blob-1"></div>
 <div class="bg-blob-2"></div>
@@ -546,7 +547,6 @@
 
         <!-- Welcome Overlay -->
         <div id="selectionOverlay">
-
             <div class="welcome-header">
                 <h1>Selecciona un Módulo</h1>
                 <div class="plan-toggle">
@@ -554,11 +554,9 @@
                     <span>ESPECIALIZADO</span>
                 </div>
             </div>
-
             <div class="welcome-grid" id="welcomeGrid">
                 <!-- Cards injected via JS -->
             </div>
-
         </div>
 
         <!-- Chat Interface -->
@@ -593,30 +591,9 @@
 
     // Configuración de módulos
     const MODULES = [
-        {
-            id: "seguros",
-            icon: "fas fa-shield-alt",
-            name: "Seguros",
-            desc: "Información detallada sobre tipos de seguros y coberturas.",
-            subtitle: "Atención de Seguros",
-            badge: ""
-        },
-        {
-            id: "tramites",
-            icon: "fas fa-file-signature",
-            name: "Trámites",
-            desc: "Gestión, requisitos y seguimiento de trámites institucionales.",
-            subtitle: "Gestión Documental",
-            badge: "MÁS SOLICITADO"
-        },
-        {
-            id: "programas",
-            icon: "fas fa-hand-holding-medical",
-            name: "Programas",
-            desc: "Afiliación, beneficios y programas integrales de salud.",
-            subtitle: "Beneficios y Salud",
-            badge: ""
-        }
+        { id: "seguros", icon: "fas fa-shield-alt", name: "Seguros", desc: "Información detallada sobre tipos de seguros y coberturas.", subtitle: "Atención de Seguros", badge: "" },
+        { id: "tramites", icon: "fas fa-file-signature", name: "Trámites", desc: "Gestión, requisitos y seguimiento de trámites institucionales.", subtitle: "Gestión Documental", badge: "MÁS SOLICITADO" },
+        { id: "programas", icon: "fas fa-hand-holding-medical", name: "Programas", desc: "Afiliación, beneficios y programas integrales de salud.", subtitle: "Beneficios y Salud", badge: "" }
     ];
 
     let currentModule = null;
@@ -705,7 +682,7 @@
         const div = document.createElement('div');
         div.className = `message ${type}`;
         
-        // Evitamos formatear el HTML si es el mensaje con audio incrustado (empieza con <audio)
+        // Evitamos formatear el HTML si es el mensaje con audio incrustado
         if (typeof text === 'string' && text.includes('<audio')) {
             div.innerHTML = text; 
         } else {
@@ -882,7 +859,7 @@
     }
 
     // =========================================================================
-    // LÓGICA DE CONEXIÓN CON FETCH (PARA GITHUB PAGES / WEB EXTERNA)
+    // LÓGICA DE CONEXIÓN CON FETCH CORREGIDA
     // =========================================================================
 
     // ENVÍO DE TEXTO
@@ -907,25 +884,30 @@
                 texto: text
             };
 
-            // Usar FETCH en lugar de google.script.run
-            // NOTA IMPORTANTE: Usamos 'text/plain' para evitar problemas de CORS de preflight (OPTIONS) con Google Apps Script.
             const response = await fetch(WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                redirect: 'follow', // OBLIGATORIO para seguir el redireccionamiento de Google
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error('Network response was not ok');
+            // Leer como texto primero. Si Apps Script devuelve HTML de error, JSON.parse() fallaría.
+            const textResponse = await response.text();
             
-            const data = await response.json();
+            let data;
+            try {
+                data = JSON.parse(textResponse);
+            } catch(e) {
+                console.error("El servidor devolvió algo que no es JSON:", textResponse);
+                throw new Error("Respuesta no válida del servidor. Verifica los permisos de Apps Script.");
+            }
             
-            // Asumiendo que tu backend en Apps Script responde con un JSON que incluye { respuesta: "El texto de la IA" }
             const respuestaIA = data.respuesta || "Mensaje recibido correctamente en el servidor.";
             addMessage('ai', respuestaIA);
 
         } catch (error) {
             console.error('Fetch Error:', error);
-            addMessage('error', 'Ocurrió un error de conexión con el servidor. Por favor, intenta de nuevo.');
+            addMessage('error', 'Ocurrió un error de conexión con el servidor. Revisa la consola para más detalles.');
         } finally {
             setLoading(false);
         }
@@ -937,12 +919,11 @@
 
         const finalTxt = text && text.trim() !== '' ? text.trim() : "Audio grabado (sin voz detectada).";
 
-        // Insertar el elemento de audio visualmente en el chat
         const audioHtmlContent = `
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 100%;">
                 <audio controls src="${audioUrlOrBase64}" style="height: 40px; max-width: 220px; outline: none; border-radius: 20px;"></audio>
                 <div style="font-size: 12px; opacity: 0.95; text-align: right; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 12px; max-width: 100%;">
-                  🎤 "${finalTxt}"
+                    🎤 "${finalTxt}"
                 </div>
             </div>
         `;
@@ -957,24 +938,29 @@
                 audioBase64: audioUrlOrBase64
             };
 
-            // Petición a Apps Script con FETCH
             const response = await fetch(WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                redirect: 'follow', // OBLIGATORIO
                 body: JSON.stringify(payload)
             });
 
-            if (!response.ok) throw new Error('Error en el servidor');
+            const textResponse = await response.text();
             
-            const data = await response.json();
+            let data;
+            try {
+                data = JSON.parse(textResponse);
+            } catch(e) {
+                console.error("El servidor devolvió algo que no es JSON:", textResponse);
+                throw new Error("Respuesta no válida del servidor en audio. Verifica permisos.");
+            }
             
-            // Renderizar la respuesta del servidor
             const respuestaIA = data.respuesta || "Audio recibido y procesado correctamente.";
             addMessage('ai', respuestaIA);
 
         } catch (error) {
             console.error('Fetch Audio Error:', error);
-            addMessage('error', 'No se pudo enviar el audio al servidor. Comprueba tu conexión.');
+            addMessage('error', 'No se pudo procesar la respuesta del servidor. Revisa la consola.');
         } finally {
             setLoading(false);
         }
@@ -983,3 +969,5 @@
 </script>
 </body>
 </html>
+</html>
+
