@@ -366,7 +366,7 @@
             border: 1px solid rgba(255,255,255,0.05);
         }
 
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px #34d399; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px #34d399; transition: all 0.3s; }
         .status-dot.busy { background: var(--chicha-main); box-shadow: 0 0 10px var(--chicha-main); animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
@@ -419,6 +419,7 @@
             font-size: 13px;
             padding: 10px 16px;
             border-radius: 12px;
+            text-align: center;
         }
 
         .chat-input-area {
@@ -587,10 +588,10 @@
 </div>
 
 <script>
-    // --- AQUÍ ESTÁ TU ENLACE EXACTO CONFIGURADO ---
+    // --- URL DE LA WEB APP (APPS SCRIPT) ---
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz_H1mwCzbmBKjHn2691Kuh5dCo4aIYwxYtbUo_N7RDUaGg_oVlqHsGLeGjLj1rkiGF/exec";
 
-    // Configuración de módulos con FontAwesome para el look moderno
+    // Configuración de módulos
     const MODULES = [
         {
             id: "seguros",
@@ -620,7 +621,7 @@
 
     let currentModule = null;
 
-    // --- VARIABLES PARA ICONOS DEL BOTON ---
+    // Iconos del Botón
     const sendIconHTML = `<i class="fas fa-paper-plane"></i>`;
     const micIconHTML = `<i class="fas fa-microphone"></i>`;
     const stopIconHTML = `<i class="fas fa-stop"></i>`;
@@ -628,12 +629,10 @@
     let recordingMode = 'none';
     let mediaRecorder = null;
     let audioChunks = [];
-
-    // Variables para Speech-to-Text
     let recognition = null;
     let transcribedText = "";
 
-    // DOMContentLoaded es mucho más seguro en Apps Script que window.onload
+    // Inicialización al cargar la página
     document.addEventListener('DOMContentLoaded', () => {
         renderWelcomeGrid();
         renderSidebarNav();
@@ -705,9 +704,41 @@
         const chat = document.getElementById('chatContainer');
         const div = document.createElement('div');
         div.className = `message ${type}`;
-        div.innerHTML = formatMessageText(text);
+        
+        // Evitamos formatear el HTML si es el mensaje con audio incrustado (empieza con <audio)
+        if (typeof text === 'string' && text.includes('<audio')) {
+            div.innerHTML = text; 
+        } else {
+            div.innerHTML = formatMessageText(text);
+        }
+        
         chat.appendChild(div);
         chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+    }
+
+    function setupTextarea() {
+        const tx = document.getElementById('userInput');
+        tx.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            updateSendButtonIcon();
+        });
+        tx.addEventListener('keydown', e => {
+            if(e.key === 'Enter' && !e.shiftKey && window.innerWidth > 950) {
+                e.preventDefault();
+                if (tx.value.trim() !== '') handleSend();
+            }
+        });
+    }
+
+    function updateSendButtonIcon() {
+        const tx = document.getElementById('userInput');
+        const btn = document.getElementById('sendBtn');
+        if (tx.value.trim() !== '') {
+            btn.innerHTML = sendIconHTML;
+        } else if (recordingMode === 'none') {
+            btn.innerHTML = micIconHTML;
+        }
     }
 
     function onMainButtonClick() {
@@ -719,11 +750,42 @@
         }
     }
 
+    function toggleMenu(force) {
+        const sidebar = document.getElementById('sidebar');
+        if (force !== undefined) {
+            force ? sidebar.classList.add('open') : sidebar.classList.remove('open');
+        } else {
+            sidebar.classList.toggle('open');
+        }
+    }
+
+    function setLoading(isLoading) {
+        const dot = document.getElementById('statusDot');
+        const mDot = document.getElementById('mobileDot');
+        const txt = document.getElementById('statusText');
+        const btn = document.getElementById('sendBtn');
+        const tx = document.getElementById('userInput');
+
+        if(isLoading) {
+            dot.classList.add('busy');
+            if(mDot) mDot.classList.add('busy');
+            txt.textContent = "Escribiendo...";
+            btn.disabled = true;
+            tx.disabled = true;
+        } else {
+            dot.classList.remove('busy');
+            if(mDot) mDot.classList.remove('busy');
+            txt.textContent = "En línea";
+            btn.disabled = false;
+            tx.disabled = false;
+            setTimeout(() => tx.focus(), 100);
+        }
+    }
+
     async function toggleRecording() {
         const btn = document.getElementById('sendBtn');
         const inputArea = document.getElementById('userInput');
 
-        // Validar soporte del navegador antes de intentar
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert("⚠️ Tu navegador no soporta grabaciones de audio o el acceso está bloqueado en este entorno.");
             return;
@@ -731,7 +793,6 @@
 
         if (recordingMode === 'none') {
             try {
-                // --- AQUÍ SOLICITA EXPLÍCITAMENTE EL PERMISO ---
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
                 recordingMode = 'real';
@@ -739,7 +800,6 @@
                 audioChunks = [];
                 transcribedText = "";
 
-                // --- Iniciar Traductor de Voz a Texto (Speech To Text) ---
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     recognition = new SpeechRecognition();
@@ -768,7 +828,6 @@
                     if (recognition) recognition.stop();
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
 
-                    // Convertir a Base64 para ser compatible con Apps Script / Fetch
                     const reader = new FileReader();
                     reader.readAsDataURL(audioBlob);
                     reader.onloadend = () => {
@@ -784,16 +843,13 @@
 
             } catch (err) {
                 console.warn("Error al solicitar permiso de micrófono:", err);
-
-                // --- MANEJO DE PERMISO DENEGADO Y ALERTAS ---
                 if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    alert("🛑 Permiso Denegado.\n\nPara usar las notas de voz, por favor permite el acceso al micrófono en la configuración de tu navegador.");
+                    alert("🛑 Permiso Denegado.\n\nPara usar las notas de voz, por favor permite el acceso al micrófono en tu navegador.");
                 } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                    alert("🎙️ No se detectó ningún micrófono.\n\nPor favor, asegúrate de tener un micrófono conectado y configurado.");
+                    alert("🎙️ No se detectó ningún micrófono.");
                 } else {
-                    alert("⚠️ Ocurrió un error al intentar acceder al micrófono: " + err.message);
+                    alert("⚠️ Error al acceder al micrófono: " + err.message);
                 }
-
                 recordingMode = 'none';
                 setUIRecordingState(false);
             }
@@ -829,33 +885,71 @@
     // LÓGICA DE CONEXIÓN CON FETCH (PARA GITHUB PAGES / WEB EXTERNA)
     // =========================================================================
 
-    async function sendAudioMessage(audioUrlOrBase64, text) {
-        if (!currentModule) return;
+    // ENVÍO DE TEXTO
+    async function handleSend() {
+        const inputArea = document.getElementById('userInput');
+        const text = inputArea.value.trim();
+        
+        if (!text || !currentModule) return;
 
-        const chat = document.getElementById('chatContainer');
-        const div = document.createElement('div');
-        div.className = `message user audio-msg`;
-        // Ajustes para mostrar el reproductor y el texto abajo
-        div.style.flexDirection = 'column';
-        div.style.alignItems = 'flex-end';
-        div.style.gap = '8px';
-
-        const finalTxt = text && text.trim() !== '' ? text.trim() : "Audio grabado (sin voz detectada).";
-
-        div.innerHTML = `
-        <audio controls src="${audioUrlOrBase64}" style="height: 40px; max-width: 220px; outline: none; border-radius: 20px;"></audio>
-        <div style="font-size: 12px; opacity: 0.95; text-align: right; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 12px; max-width: 100%;">
-          🎤 "${finalTxt}"
-        </div>
-      `;
-
-        chat.appendChild(div);
-        chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-
+        addMessage('user', text);
+        
+        // Limpiar input
+        inputArea.value = '';
+        inputArea.style.height = 'auto';
+        updateSendButtonIcon();
         setLoading(true);
 
         try {
-            // Enviar por FETCH a tu Web App de Google
+            const payload = {
+                tipo: "texto",
+                modulo: currentModule,
+                texto: text
+            };
+
+            // Usar FETCH en lugar de google.script.run
+            // NOTA IMPORTANTE: Usamos 'text/plain' para evitar problemas de CORS de preflight (OPTIONS) con Google Apps Script.
+            const response = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            
+            // Asumiendo que tu backend en Apps Script responde con un JSON que incluye { respuesta: "El texto de la IA" }
+            const respuestaIA = data.respuesta || "Mensaje recibido correctamente en el servidor.";
+            addMessage('ai', respuestaIA);
+
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            addMessage('error', 'Ocurrió un error de conexión con el servidor. Por favor, intenta de nuevo.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // ENVÍO DE AUDIO
+    async function sendAudioMessage(audioUrlOrBase64, text) {
+        if (!currentModule) return;
+
+        const finalTxt = text && text.trim() !== '' ? text.trim() : "Audio grabado (sin voz detectada).";
+
+        // Insertar el elemento de audio visualmente en el chat
+        const audioHtmlContent = `
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 100%;">
+                <audio controls src="${audioUrlOrBase64}" style="height: 40px; max-width: 220px; outline: none; border-radius: 20px;"></audio>
+                <div style="font-size: 12px; opacity: 0.95; text-align: right; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 12px; max-width: 100%;">
+                  🎤 "${finalTxt}"
+                </div>
+            </div>
+        `;
+        addMessage('user audio-msg', audioHtmlContent);
+        setLoading(true);
+
+        try {
             const payload = {
                 tipo: "audio",
                 modulo: currentModule,
@@ -863,113 +957,29 @@
                 audioBase64: audioUrlOrBase64
             };
 
+            // Petición a Apps Script con FETCH
             const response = await fetch(WEB_APP_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Importante: text/plain para evitar CORS preflight
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
 
             if (!response.ok) throw new Error('Error en el servidor');
+            
             const data = await response.json();
-
-            addMessage('ai', data.respuesta || "Audio recibido y procesado.");
+            
+            // Renderizar la respuesta del servidor
+            const respuestaIA = data.respuesta || "Audio recibido y procesado correctamente.";
+            addMessage('ai', respuestaIA);
 
         } catch (error) {
-            console.error("Error al enviar audio:", error);
-            addMessage('error', "⚠️ Error de conexión con el servidor. Por favor, intenta de nuevo.");
+            console.error('Fetch Audio Error:', error);
+            addMessage('error', 'No se pudo enviar el audio al servidor. Comprueba tu conexión.');
         } finally {
             setLoading(false);
         }
     }
 
-    async function handleSend() {
-        const input = document.getElementById('userInput');
-        const text = input.value.trim();
-        if (!text || !currentModule) return;
-
-        addMessage('user', text);
-        input.value = '';
-        input.style.height = 'auto';
-        updateSendButtonIcon();
-        setLoading(true);
-
-        try {
-            // Enviar por FETCH a tu Web App de Google
-            const payload = {
-                tipo: "texto",
-                modulo: currentModule,
-                mensaje: text
-            };
-
-            const response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Importante: text/plain para evitar CORS preflight
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) throw new Error('Error en el servidor');
-            const data = await response.json();
-
-            addMessage('ai', data.respuesta || "Mensaje recibido.");
-
-        } catch (error) {
-            console.error("Error al enviar texto:", error);
-            addMessage('error', "⚠️ Error de conexión con el servidor. Asegúrate de que tu Google Apps Script esté implementado como Web App accesible por todos.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    function setLoading(isBusy) {
-        const dot = document.getElementById('statusDot');
-        const mDot = document.getElementById('mobileDot');
-        const txt = document.getElementById('statusText');
-        const btn = document.getElementById('sendBtn');
-        if(isBusy) {
-            dot.classList.add('busy');
-            if(mDot) mDot.classList.add('busy');
-            txt.textContent = "Procesando...";
-            btn.disabled = true;
-        } else {
-            dot.classList.remove('busy');
-            if(mDot) mDot.classList.remove('busy');
-            txt.textContent = "En línea";
-            btn.disabled = false;
-            setTimeout(() => document.getElementById('userInput').focus(), 100);
-        }
-    }
-
-    function toggleMenu(force) {
-        const sidebar = document.getElementById('sidebar');
-        if (force !== undefined) {
-            force ? sidebar.classList.add('open') : sidebar.classList.remove('open');
-        } else {
-            sidebar.classList.toggle('open');
-        }
-    }
-
-    function setupTextarea() {
-        const tx = document.getElementById('userInput');
-        tx.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-            updateSendButtonIcon();
-        });
-        tx.addEventListener('keydown', e => {
-            if(e.key === 'Enter' && !e.shiftKey && window.innerWidth > 950) {
-                e.preventDefault();
-                if (tx.value.trim() !== '') handleSend();
-            }
-        });
-    }
-
-    function updateSendButtonIcon() {
-        const tx = document.getElementById('userInput');
-        const btn = document.getElementById('sendBtn');
-        if (recordingMode !== 'none') return;
-        btn.innerHTML = tx.value.trim() !== '' ? sendIconHTML : micIconHTML;
-    }
 </script>
 </body>
-
 </html>
