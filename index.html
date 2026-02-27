@@ -586,388 +586,387 @@
 </div>
 
 <script>
-    // --- URL DE LA WEB APP (APPS SCRIPT) ---
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz_H1mwCzbmBKjHn2691Kuh5dCo4aIYwxYtbUo_N7RDUaGg_oVlqHsGLeGjLj1rkiGF/exec";
+        // --- URL DE LA WEB APP (APPS SCRIPT) ---
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz_H1mwCzbmBKjHn2691Kuh5dCo4aIYwxYtbUo_N7RDUaGg_oVlqHsGLeGjLj1rkiGF/exec";
 
-    // Configuración de módulos
-    const MODULES = [
-        { id: "seguros", icon: "fas fa-shield-alt", name: "Seguros", desc: "Información detallada sobre tipos de seguros y coberturas.", subtitle: "Atención de Seguros", badge: "" },
-        { id: "tramites", icon: "fas fa-file-signature", name: "Trámites", desc: "Gestión, requisitos y seguimiento de trámites institucionales.", subtitle: "Gestión Documental", badge: "MÁS SOLICITADO" },
-        { id: "programas", icon: "fas fa-hand-holding-medical", name: "Programas", desc: "Afiliación, beneficios y programas integrales de salud.", subtitle: "Beneficios y Salud", badge: "" }
-    ];
+        // Configuración de módulos
+        const MODULES = [
+            { id: "seguros", icon: "fas fa-shield-alt", name: "Seguros", desc: "Información detallada sobre tipos de seguros y coberturas.", subtitle: "Atención de Seguros", badge: "" },
+            { id: "tramites", icon: "fas fa-file-signature", name: "Trámites", desc: "Gestión, requisitos y seguimiento de trámites institucionales.", subtitle: "Gestión Documental", badge: "MÁS SOLICITADO" },
+            { id: "programas", icon: "fas fa-hand-holding-medical", name: "Programas", desc: "Afiliación, beneficios y programas integrales de salud.", subtitle: "Beneficios y Salud", badge: "" }
+        ];
 
-    let currentModule = null;
+        let currentModule = null;
 
-    // Iconos del Botón
-    const sendIconHTML = `<i class="fas fa-paper-plane"></i>`;
-    const micIconHTML = `<i class="fas fa-microphone"></i>`;
-    const stopIconHTML = `<i class="fas fa-stop"></i>`;
+        // Iconos del Botón
+        const sendIconHTML = `<i class="fas fa-paper-plane"></i>`;
+        const micIconHTML = `<i class="fas fa-microphone"></i>`;
+        const stopIconHTML = `<i class="fas fa-stop"></i>`;
 
-    let recordingMode = 'none';
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let recognition = null;
-    let transcribedText = "";
+        let recordingMode = 'none';
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recognition = null;
+        let transcribedText = "";
 
-    // Inicialización al cargar la página
-    document.addEventListener('DOMContentLoaded', () => {
-        renderWelcomeGrid();
-        renderSidebarNav();
-        setupTextarea();
-    });
-
-    function renderWelcomeGrid() {
-        const grid = document.getElementById('welcomeGrid');
-        grid.innerHTML = MODULES.map(m => `
-        <div class="welcome-card card-${m.id}" onclick="selectModule('${m.id}')">
-          <div class="card-wave wave-1"></div>
-          <div class="card-wave wave-2"></div>
-          <div class="card-content">
-            <div class="card-badge" style="visibility: ${m.badge ? 'visible' : 'hidden'}">${m.badge || 'N/A'}</div>
-            <div class="card-icon-big"><i class="${m.icon}"></i></div>
-            <h3>${m.name}</h3>
-            <p>${m.desc}</p>
-            <button class="choose-btn btn-chicha">Ingresar al Módulo</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function renderSidebarNav() {
-        const container = document.getElementById('navContainer');
-        container.innerHTML = MODULES.map(m => `
-        <button class="nav-btn ${currentModule === m.id ? 'active' : ''}" onclick="selectModule('${m.id}')">
-          <div class="icon-box"><i class="${m.icon}"></i></div>
-          <div class="nav-info">
-            <b>${m.name}</b>
-            <span>${m.subtitle}</span>
-          </div>
-        </button>
-      `).join('');
-    }
-
-    function selectModule(id) {
-        currentModule = id;
-        const m = MODULES.find(x => x.id === id);
-
-        document.getElementById('selectionOverlay').classList.add('hidden');
-        document.getElementById('chatInterface').classList.remove('hidden');
-
-        document.getElementById('activeTitle').textContent = m.name;
-        document.getElementById('activeSubtitle').textContent = m.subtitle;
-        document.getElementById('mobileTitle').textContent = m.name;
-
-        renderSidebarNav();
-
-        const chat = document.getElementById('chatContainer');
-        chat.innerHTML = '';
-
-        addMessage('ai', `¡Hola! Has ingresado al módulo de **${m.name}**.\n\nEstoy aquí para asistirte con toda la información sobre ${m.desc.toLowerCase()}`);
-
-        if(window.innerWidth <= 950) toggleMenu(false);
-    }
-
-    function formatMessageText(text) {
-        if (!text) return "";
-        let formatted = text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-        return formatted;
-    }
-
-    function addMessage(type, text) {
-        const chat = document.getElementById('chatContainer');
-        const div = document.createElement('div');
-        div.className = `message ${type}`;
-        
-        // Evitamos formatear el HTML si es el mensaje con audio incrustado
-        if (typeof text === 'string' && text.includes('<audio')) {
-            div.innerHTML = text; 
-        } else {
-            div.innerHTML = formatMessageText(text);
-        }
-        
-        chat.appendChild(div);
-        chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-    }
-
-    function setupTextarea() {
-        const tx = document.getElementById('userInput');
-        tx.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-            updateSendButtonIcon();
+        // Inicialización al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            renderWelcomeGrid();
+            renderSidebarNav();
+            setupTextarea();
         });
-        tx.addEventListener('keydown', e => {
-            if(e.key === 'Enter' && !e.shiftKey && window.innerWidth > 950) {
-                e.preventDefault();
-                if (tx.value.trim() !== '') handleSend();
+
+        function renderWelcomeGrid() {
+            const grid = document.getElementById('welcomeGrid');
+            if(!grid) return; // Previene el error de null
+            
+            grid.innerHTML = MODULES.map(m => `
+            <div class="welcome-card" onclick="selectModule('${m.id}')">
+              <div class="card-badge" style="visibility: ${m.badge ? 'visible' : 'hidden'}">${m.badge || 'N/A'}</div>
+              <div class="card-icon-big"><i class="${m.icon}"></i></div>
+              <h3 class="font-bold text-xl mb-2">${m.name}</h3>
+              <p class="text-sm text-gray-400 mb-4">${m.desc}</p>
+              <button class="w-full py-2 rounded-lg btn-chicha text-sm font-bold">Ingresar</button>
+            </div>
+          `).join('');
+        }
+
+        function renderSidebarNav() {
+            const container = document.getElementById('navContainer');
+            if(!container) return; // Previene el error de null
+            
+            container.innerHTML = MODULES.map(m => `
+            <button class="nav-btn ${currentModule === m.id ? 'active' : ''}" onclick="selectModule('${m.id}')">
+              <div class="icon-box"><i class="${m.icon}"></i></div>
+              <div class="nav-info">
+                <b class="block text-sm">${m.name}</b>
+                <span class="text-xs text-gray-400">${m.subtitle}</span>
+              </div>
+            </button>
+          `).join('');
+        }
+
+        function selectModule(id) {
+            currentModule = id;
+            const m = MODULES.find(x => x.id === id);
+
+            const selectionOverlay = document.getElementById('selectionOverlay');
+            const chatInterface = document.getElementById('chatInterface');
+            if(selectionOverlay) selectionOverlay.classList.add('hidden');
+            if(chatInterface) chatInterface.classList.remove('hidden');
+            if(chatInterface) chatInterface.classList.add('flex');
+
+            const activeTitle = document.getElementById('activeTitle');
+            const activeSubtitle = document.getElementById('activeSubtitle');
+            const mobileTitle = document.getElementById('mobileTitle');
+            
+            if(activeTitle) activeTitle.textContent = m.name;
+            if(activeSubtitle) activeSubtitle.textContent = m.subtitle;
+            if(mobileTitle) mobileTitle.textContent = m.name;
+
+            renderSidebarNav();
+
+            const chat = document.getElementById('chatContainer');
+            if(chat) {
+                chat.innerHTML = '';
+                addMessage('ai', `¡Hola! Has ingresado al módulo de **${m.name}**.\n\nEstoy aquí para asistirte con toda la información sobre ${m.desc.toLowerCase()}`);
             }
-        });
-    }
 
-    function updateSendButtonIcon() {
-        const tx = document.getElementById('userInput');
-        const btn = document.getElementById('sendBtn');
-        if (tx.value.trim() !== '') {
-            btn.innerHTML = sendIconHTML;
-        } else if (recordingMode === 'none') {
-            btn.innerHTML = micIconHTML;
-        }
-    }
-
-    function onMainButtonClick() {
-        const text = document.getElementById('userInput').value.trim();
-        if (text !== '') {
-            handleSend();
-        } else {
-            toggleRecording();
-        }
-    }
-
-    function toggleMenu(force) {
-        const sidebar = document.getElementById('sidebar');
-        if (force !== undefined) {
-            force ? sidebar.classList.add('open') : sidebar.classList.remove('open');
-        } else {
-            sidebar.classList.toggle('open');
-        }
-    }
-
-    function setLoading(isLoading) {
-        const dot = document.getElementById('statusDot');
-        const mDot = document.getElementById('mobileDot');
-        const txt = document.getElementById('statusText');
-        const btn = document.getElementById('sendBtn');
-        const tx = document.getElementById('userInput');
-
-        if(isLoading) {
-            dot.classList.add('busy');
-            if(mDot) mDot.classList.add('busy');
-            txt.textContent = "Escribiendo...";
-            btn.disabled = true;
-            tx.disabled = true;
-        } else {
-            dot.classList.remove('busy');
-            if(mDot) mDot.classList.remove('busy');
-            txt.textContent = "En línea";
-            btn.disabled = false;
-            tx.disabled = false;
-            setTimeout(() => tx.focus(), 100);
-        }
-    }
-
-    async function toggleRecording() {
-        const btn = document.getElementById('sendBtn');
-        const inputArea = document.getElementById('userInput');
-
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            alert("⚠️ Tu navegador no soporta grabaciones de audio o el acceso está bloqueado en este entorno.");
-            return;
+            if(window.innerWidth <= 950) toggleMenu(false);
         }
 
-        if (recordingMode === 'none') {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        function formatMessageText(text) {
+            if (!text) return "";
+            let formatted = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\n/g, "<br>");
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            return formatted;
+        }
 
-                recordingMode = 'real';
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                transcribedText = "";
+        function addMessage(type, text) {
+            const chat = document.getElementById('chatContainer');
+            if(!chat) return;
+            
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            
+            if (typeof text === 'string' && text.includes('<audio')) {
+                div.innerHTML = text; 
+            } else {
+                div.innerHTML = formatMessageText(text);
+            }
+            
+            chat.appendChild(div);
+            chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+        }
 
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (SpeechRecognition) {
-                    recognition = new SpeechRecognition();
-                    recognition.lang = 'es-NI';
-                    recognition.continuous = true;
-                    recognition.interimResults = true;
-
-                    recognition.onresult = (event) => {
-                        let interim = "";
-                        let final = "";
-                        for (let i = event.resultIndex; i < event.results.length; ++i) {
-                            if (event.results[i].isFinal) final += event.results[i][0].transcript;
-                            else interim += event.results[i][0].transcript;
-                        }
-                        transcribedText += final;
-                        inputArea.placeholder = "Escuchando: " + transcribedText + interim;
-                    };
-                    recognition.start();
+        function setupTextarea() {
+            const tx = document.getElementById('userInput');
+            if(!tx) return;
+            
+            tx.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                updateSendButtonIcon();
+            });
+            tx.addEventListener('keydown', e => {
+                if(e.key === 'Enter' && !e.shiftKey && window.innerWidth > 950) {
+                    e.preventDefault();
+                    if (tx.value.trim() !== '') handleSend();
                 }
+            });
+        }
 
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
+        function updateSendButtonIcon() {
+            const tx = document.getElementById('userInput');
+            const btn = document.getElementById('sendBtn');
+            if(!tx || !btn) return;
+            
+            if (tx.value.trim() !== '') {
+                btn.innerHTML = sendIconHTML;
+            } else if (recordingMode === 'none') {
+                btn.innerHTML = micIconHTML;
+            }
+        }
 
-                mediaRecorder.onstop = () => {
-                    if (recognition) recognition.stop();
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        function onMainButtonClick() {
+            const tx = document.getElementById('userInput');
+            if(!tx) return;
+            
+            const text = tx.value.trim();
+            if (text !== '') {
+                handleSend();
+            } else {
+                toggleRecording();
+            }
+        }
 
-                    const reader = new FileReader();
-                    reader.readAsDataURL(audioBlob);
-                    reader.onloadend = () => {
-                        const base64Audio = reader.result;
-                        sendAudioMessage(base64Audio, transcribedText);
+        function toggleMenu(force) {
+            const sidebar = document.getElementById('sidebar');
+            if(!sidebar) return;
+            
+            if (force !== undefined) {
+                force ? sidebar.classList.add('open') : sidebar.classList.remove('open');
+            } else {
+                sidebar.classList.toggle('open');
+            }
+        }
+
+        function setLoading(isLoading) {
+            const dot = document.getElementById('statusDot');
+            const mDot = document.getElementById('mobileDot');
+            const txt = document.getElementById('statusText');
+            const btn = document.getElementById('sendBtn');
+            const tx = document.getElementById('userInput');
+
+            if(isLoading) {
+                if(dot) dot.classList.add('busy', 'bg-yellow-400');
+                if(mDot) mDot.classList.add('busy', 'bg-yellow-400');
+                if(txt) txt.textContent = "Escribiendo...";
+                if(btn) btn.disabled = true;
+                if(tx) tx.disabled = true;
+            } else {
+                if(dot) dot.classList.remove('busy', 'bg-yellow-400');
+                if(mDot) mDot.classList.remove('busy', 'bg-yellow-400');
+                if(txt) txt.textContent = "En línea";
+                if(btn) btn.disabled = false;
+                if(tx) {
+                    tx.disabled = false;
+                    setTimeout(() => tx.focus(), 100);
+                }
+            }
+        }
+
+        async function toggleRecording() {
+            const btn = document.getElementById('sendBtn');
+            const inputArea = document.getElementById('userInput');
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("⚠️ Tu navegador no soporta grabaciones de audio o el acceso está bloqueado en este entorno.");
+                return;
+            }
+
+            if (recordingMode === 'none') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                    recordingMode = 'real';
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    transcribedText = "";
+
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (SpeechRecognition) {
+                        recognition = new SpeechRecognition();
+                        recognition.lang = 'es-NI';
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+
+                        recognition.onresult = (event) => {
+                            let interim = "";
+                            let final = "";
+                            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                                if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                                else interim += event.results[i][0].transcript;
+                            }
+                            transcribedText += final;
+                            inputArea.placeholder = "Escuchando: " + transcribedText + interim;
+                        };
+                        recognition.start();
+                    }
+
+                    mediaRecorder.ondataavailable = e => {
+                        if (e.data.size > 0) audioChunks.push(e.data);
                     };
 
-                    stream.getTracks().forEach(track => track.stop());
-                };
+                    mediaRecorder.onstop = () => {
+                        if (recognition) recognition.stop();
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
 
-                mediaRecorder.start();
-                setUIRecordingState(true);
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            const base64Audio = reader.result;
+                            sendAudioMessage(base64Audio, transcribedText);
+                        };
 
-            } catch (err) {
-                console.warn("Error al solicitar permiso de micrófono:", err);
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    alert("🛑 Permiso Denegado.\n\nPara usar las notas de voz, por favor permite el acceso al micrófono en tu navegador.");
-                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-                    alert("🎙️ No se detectó ningún micrófono.");
-                } else {
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    setUIRecordingState(true);
+
+                } catch (err) {
+                    console.warn("Error:", err);
                     alert("⚠️ Error al acceder al micrófono: " + err.message);
+                    recordingMode = 'none';
+                    setUIRecordingState(false);
+                }
+            } else {
+                if (recordingMode === 'real' && mediaRecorder) {
+                    mediaRecorder.stop();
                 }
                 recordingMode = 'none';
                 setUIRecordingState(false);
             }
-        } else {
-            if (recordingMode === 'real' && mediaRecorder) {
-                mediaRecorder.stop();
+        }
+
+        function setUIRecordingState(isRec) {
+            const btn = document.getElementById('sendBtn');
+            const inputArea = document.getElementById('userInput');
+            if (isRec) {
+                if(btn) {
+                    btn.innerHTML = stopIconHTML;
+                    btn.classList.add('recording');
+                    btn.classList.remove('btn-chicha');
+                }
+                if(inputArea) {
+                    inputArea.placeholder = "Grabando... (Click para detener)";
+                    inputArea.disabled = true;
+                }
+            } else {
+                if(btn) {
+                    btn.innerHTML = micIconHTML;
+                    btn.classList.remove('recording');
+                    btn.classList.add('btn-chicha');
+                }
+                if(inputArea) {
+                    inputArea.placeholder = "Escribe tu consulta aquí...";
+                    inputArea.disabled = false;
+                    inputArea.focus();
+                }
             }
-            recordingMode = 'none';
-            setUIRecordingState(false);
         }
-    }
 
-    function setUIRecordingState(isRec) {
-        const btn = document.getElementById('sendBtn');
-        const inputArea = document.getElementById('userInput');
-        if (isRec) {
-            btn.innerHTML = stopIconHTML;
-            btn.classList.add('recording');
-            btn.classList.remove('btn-chicha');
-            inputArea.placeholder = "Grabando... (Click para detener)";
-            inputArea.disabled = true;
-        } else {
-            btn.innerHTML = micIconHTML;
-            btn.classList.remove('recording');
-            btn.classList.add('btn-chicha');
-            inputArea.placeholder = "Escribe tu consulta aquí o presiona el micrófono...";
-            inputArea.disabled = false;
-            inputArea.focus();
-        }
-    }
-
-    // =========================================================================
-    // LÓGICA DE CONEXIÓN CON FETCH CORREGIDA
-    // =========================================================================
-
-    // ENVÍO DE TEXTO
-    async function handleSend() {
-        const inputArea = document.getElementById('userInput');
-        const text = inputArea.value.trim();
-        
-        if (!text || !currentModule) return;
-
-        addMessage('user', text);
-        
-        // Limpiar input
-        inputArea.value = '';
-        inputArea.style.height = 'auto';
-        updateSendButtonIcon();
-        setLoading(true);
-
-        try {
-            const payload = {
-                tipo: "texto",
-                modulo: currentModule,
-                texto: text
-            };
-
-            const response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                redirect: 'follow', // OBLIGATORIO para seguir el redireccionamiento de Google
-                body: JSON.stringify(payload)
-            });
-
-            // Leer como texto primero. Si Apps Script devuelve HTML de error, JSON.parse() fallaría.
-            const textResponse = await response.text();
+        async function handleSend() {
+            const inputArea = document.getElementById('userInput');
+            if(!inputArea) return;
             
-            let data;
+            const text = inputArea.value.trim();
+            
+            if (!text || !currentModule) return;
+
+            addMessage('user', text);
+            
+            inputArea.value = '';
+            inputArea.style.height = 'auto';
+            updateSendButtonIcon();
+            setLoading(true);
+
             try {
-                data = JSON.parse(textResponse);
-            } catch(e) {
-                console.error("El servidor devolvió algo que no es JSON:", textResponse);
-                throw new Error("Respuesta no válida del servidor. Verifica los permisos de Apps Script.");
+                const payload = { tipo: "texto", modulo: currentModule, texto: text };
+
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("Error en red " + response.status);
+
+                const textResponse = await response.text();
+                let data;
+                try { data = JSON.parse(textResponse); } 
+                catch(e) { throw new Error("El servidor no devolvió JSON válido."); }
+                
+                const respuestaIA = data.respuesta || "Mensaje recibido.";
+                addMessage('ai', respuestaIA);
+
+            } catch (error) {
+                console.error('CORS o Red Error:', error);
+                addMessage('error', '⚠️ Error de conexión. Revisa que el script esté configurado con acceso a "Cualquier Persona" (Anyone).');
+            } finally {
+                setLoading(false);
             }
-            
-            const respuestaIA = data.respuesta || "Mensaje recibido correctamente en el servidor.";
-            addMessage('ai', respuestaIA);
-
-        } catch (error) {
-            console.error('Fetch Error:', error);
-            addMessage('error', 'Ocurrió un error de conexión con el servidor. Revisa la consola para más detalles.');
-        } finally {
-            setLoading(false);
         }
-    }
 
-    // ENVÍO DE AUDIO
-    async function sendAudioMessage(audioUrlOrBase64, text) {
-        if (!currentModule) return;
+        async function sendAudioMessage(audioUrlOrBase64, text) {
+            if (!currentModule) return;
 
-        const finalTxt = text && text.trim() !== '' ? text.trim() : "Audio grabado (sin voz detectada).";
-
-        const audioHtmlContent = `
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 100%;">
-                <audio controls src="${audioUrlOrBase64}" style="height: 40px; max-width: 220px; outline: none; border-radius: 20px;"></audio>
-                <div style="font-size: 12px; opacity: 0.95; text-align: right; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 12px; max-width: 100%;">
-                    🎤 "${finalTxt}"
+            const finalTxt = text && text.trim() !== '' ? text.trim() : "Audio grabado.";
+            const audioHtmlContent = `
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 100%;">
+                    <audio controls src="${audioUrlOrBase64}" style="height: 40px; max-width: 220px; outline: none; border-radius: 20px;"></audio>
+                    <div style="font-size: 12px; opacity: 0.95; text-align: right; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 12px; max-width: 100%;">
+                        🎤 "${finalTxt}"
+                    </div>
                 </div>
-            </div>
-        `;
-        addMessage('user audio-msg', audioHtmlContent);
-        setLoading(true);
+            `;
+            addMessage('user audio-msg', audioHtmlContent);
+            setLoading(true);
 
-        try {
-            const payload = {
-                tipo: "audio",
-                modulo: currentModule,
-                textoAudio: finalTxt,
-                audioBase64: audioUrlOrBase64
-            };
-
-            const response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                redirect: 'follow', // OBLIGATORIO
-                body: JSON.stringify(payload)
-            });
-
-            const textResponse = await response.text();
-            
-            let data;
             try {
-                data = JSON.parse(textResponse);
-            } catch(e) {
-                console.error("El servidor devolvió algo que no es JSON:", textResponse);
-                throw new Error("Respuesta no válida del servidor en audio. Verifica permisos.");
+                const payload = { tipo: "audio", modulo: currentModule, textoAudio: finalTxt, audioBase64: audioUrlOrBase64 };
+
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("Error en red " + response.status);
+
+                const textResponse = await response.text();
+                let data;
+                try { data = JSON.parse(textResponse); } 
+                catch(e) { throw new Error("Respuesta no válida."); }
+                
+                const respuestaIA = data.respuesta || "Audio procesado.";
+                addMessage('ai', respuestaIA);
+
+            } catch (error) {
+                console.error('CORS o Red Error (Audio):', error);
+                addMessage('error', '⚠️ Error de conexión al enviar el audio.');
+            } finally {
+                setLoading(false);
             }
-            
-            const respuestaIA = data.respuesta || "Audio recibido y procesado correctamente.";
-            addMessage('ai', respuestaIA);
-
-        } catch (error) {
-            console.error('Fetch Audio Error:', error);
-            addMessage('error', 'No se pudo procesar la respuesta del servidor. Revisa la consola.');
-        } finally {
-            setLoading(false);
         }
-    }
-
-</script>
+    </script>
 </body>
 </html>
 </html>
+
 
