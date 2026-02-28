@@ -234,16 +234,19 @@
         .textarea-wrapper {
             position: relative;
             width: 100%;
+            display: flex;
+            align-items: flex-end;
         }
 
         textarea {
             width: 100%;
-            min-height: 100px;
+            min-height: 120px;
             background: rgba(255,255,255, 0.8);
             border: 1px solid rgba(0,0,0,0.1);
             border-radius: var(--radius-md);
             padding: 1rem;
-            padding-right: 50px; /* Espacio para el microfono */
+            padding-right: 65px; /* Espacio amplio para el botón de acción */
+            padding-bottom: 1rem;
             font-size: 0.95rem;
             color: var(--text-dark);
             resize: none;
@@ -256,32 +259,58 @@
             box-shadow: 0 0 0 3px var(--chicha-glow);
         }
 
-        /* Botón Micrófono */
-        .btn-mic {
+        /* Botón de Acción Dinámico (Micro / Enviar) */
+        .btn-action {
             position: absolute;
-            right: 10px;
-            bottom: 15px;
-            background: transparent;
+            right: 12px;
+            bottom: 12px;
             border: none;
-            color: var(--chicha-main);
-            font-size: 1.5rem;
             cursor: pointer;
             transition: var(--transition);
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             border-radius: 50%;
+            outline: none;
         }
 
-        .btn-mic:hover {
+        /* Estado: Micrófono (por defecto) */
+        .btn-action.mic-mode {
+            background: transparent;
+            color: var(--chicha-main);
+            font-size: 1.5rem;
+        }
+
+        .btn-action.mic-mode:hover {
             background: rgba(216, 27, 96, 0.1);
         }
 
-        .btn-mic.recording {
+        .btn-action.mic-mode.recording {
             color: #ff3b30;
             animation: pulseRecord 1.5s infinite;
+        }
+
+        /* Estado: Enviar Texto */
+        .btn-action.send-mode {
+            background: var(--chicha-main);
+            color: var(--text-light);
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px var(--chicha-glow);
+        }
+
+        .btn-action.send-mode:hover, .btn-action.send-mode:active {
+            background: var(--chicha-dark);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .btn-action:disabled {
+            background: #ccc;
+            color: #fff;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
         }
 
         @keyframes pulseRecord {
@@ -290,42 +319,11 @@
             100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
         }
 
-        /* Botón Enviar */
-        .btn-submit {
-            background: var(--chicha-main);
-            color: var(--text-light);
-            border: none;
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: var(--transition);
-            box-shadow: 0 4px 15px var(--chicha-glow);
-            width: 100%;
-        }
-
-        .btn-submit:hover, .btn-submit:active {
-            background: var(--chicha-dark);
-            transform: translateY(-2px);
-        }
-
-        .btn-submit:disabled {
-            background: #ccc;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-        }
-
         /* Feedback y Loader */
         .feedback {
             text-align: center;
             font-size: 0.85rem;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
             min-height: 20px;
             font-weight: 500;
         }
@@ -335,12 +333,17 @@
 
         .loader {
             display: none;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: var(--chicha-main);
             border-radius: 50%;
-            border-top-color: var(--text-light);
             animation: spin 1s ease-in-out infinite;
+        }
+
+        /* Color blanco para el loader si está en modo enviar */
+        .btn-action.send-mode .loader {
+            border-top-color: var(--text-light);
         }
 
         @keyframes spin {
@@ -408,18 +411,15 @@
             <div class="input-area">
                 <div class="textarea-wrapper">
                     <textarea id="user-input" placeholder="Escribe tu consulta o usa el micrófono..."></textarea>
-                    <button class="btn-mic" id="btn-mic" onclick="toggleRecording()" title="Hablar">
-                        <i class="fas fa-microphone"></i>
+                    
+                    <!-- Botón Unificado (Micrófono / Enviar) -->
+                    <button class="btn-action mic-mode" id="btn-action" onclick="handleAction()" title="Hablar">
+                        <i class="fas fa-microphone" id="action-icon"></i>
+                        <div class="loader" id="loader"></div>
                     </button>
                 </div>
-                <button class="btn-submit" id="btn-submit" onclick="sendData()">
-                    <span id="btn-text">Enviar Consulta</span>
-                    <i class="fas fa-paper-plane" id="btn-icon"></i>
-                    <div class="loader" id="loader"></div>
-                </button>
+                <div id="feedback-msg" class="feedback"></div>
             </div>
-
-            <div id="feedback-msg" class="feedback"></div>
         </div>
 
     </div>
@@ -435,7 +435,6 @@
         let currentModule = "";
         let isRecording = false;
         let recognition = null;
-        let micPermissionAsked = false;
 
         // Elementos DOM
         const viewModules = document.getElementById('view-modules');
@@ -443,13 +442,45 @@
         const moduleTitle = document.getElementById('module-title');
         const welcomeMessage = document.getElementById('welcome-message');
         const userInput = document.getElementById('user-input');
-        const btnMic = document.getElementById('btn-mic');
-        const micIcon = btnMic.querySelector('i');
-        const btnSubmit = document.getElementById('btn-submit');
+        const btnAction = document.getElementById('btn-action');
+        const actionIcon = document.getElementById('action-icon');
         const feedbackMsg = document.getElementById('feedback-msg');
         const loader = document.getElementById('loader');
-        const btnText = document.getElementById('btn-text');
-        const btnIcon = document.getElementById('btn-icon');
+
+        // Escuchar cuando el usuario escribe para cambiar el botón
+        userInput.addEventListener('input', updateActionButton);
+
+        function updateActionButton() {
+            // Si está grabando, forzamos la apariencia de grabación y salimos
+            if (isRecording) return; 
+
+            const textLength = userInput.value.trim().length;
+
+            if (textLength > 0) {
+                // Modo Enviar
+                btnAction.className = 'btn-action send-mode';
+                actionIcon.className = 'fas fa-paper-plane';
+                btnAction.title = "Enviar";
+            } else {
+                // Modo Micrófono
+                btnAction.className = 'btn-action mic-mode';
+                actionIcon.className = 'fas fa-microphone';
+                btnAction.title = "Hablar";
+            }
+        }
+
+        // Manejar el clic del botón unificado
+        function handleAction() {
+            const isText = userInput.value.trim().length > 0;
+            
+            if (isText && !isRecording) {
+                // Si hay texto y no está grabando, enviar datos
+                sendData();
+            } else {
+                // De lo contrario, gestionar el micrófono
+                toggleRecording();
+            }
+        }
 
         // Inicializar Web Speech API
         function initSpeechRecognition() {
@@ -458,12 +489,12 @@
                 recognition = new SpeechRecognition();
                 recognition.continuous = false; // Solo graba una frase/oración por vez
                 recognition.interimResults = true; // Mostrar resultados mientras habla
-                recognition.lang = 'es-NI'; // Ajustado a Nicaragua, puede ser 'es-ES' o 'es-MX'
+                recognition.lang = 'es-NI';
 
                 recognition.onstart = () => {
                     isRecording = true;
-                    btnMic.classList.add('recording');
-                    micIcon.className = 'fas fa-stop-circle';
+                    btnAction.className = 'btn-action mic-mode recording';
+                    actionIcon.className = 'fas fa-stop-circle';
                     userInput.placeholder = "Escuchando...";
                 };
 
@@ -479,7 +510,6 @@
                         }
                     }
                     
-                    // Actualiza el textarea. Si ya había texto, lo concatena.
                     if (finalTranscript !== '') {
                          userInput.value += (userInput.value ? ' ' : '') + finalTranscript;
                     }
@@ -497,7 +527,7 @@
                     stopRecording();
                 };
             } else {
-                btnMic.style.display = 'none'; // Ocultar si no es compatible
+                btnAction.style.display = 'none'; // Ocultar si no es compatible
                 console.warn("Speech Recognition API no soportada en este navegador.");
             }
         }
@@ -509,19 +539,17 @@
         function selectModule(moduleName, iconClass) {
             currentModule = moduleName;
             
-            // Actualizar UI
             moduleTitle.innerHTML = `<i class="${iconClass}" style="color: var(--chicha-main)"></i> ${moduleName}`;
             welcomeMessage.innerHTML = `<strong>¡Bienvenido al área de ${moduleName}!</strong><br> Por favor descríbeme tu caso, ya sea escribiendo o usando el micrófono.`;
             
-            // Limpiar inputs
             userInput.value = "";
             showFeedback("", "");
+            updateActionButton(); // Asegurar que empieza con el micrófono
 
-            // Transición de vistas
             viewModules.classList.remove('active');
             setTimeout(() => {
                 viewInteraction.classList.add('active');
-            }, 300); // Esperar que termine el fade out
+            }, 300);
         }
 
         // Navegación: Volver a módulos
@@ -544,9 +572,7 @@
             if (isRecording) {
                 recognition.stop();
             } else {
-                // Solicitar permiso implícito al iniciar
                 try {
-                    userInput.value = ""; // Limpiar al iniciar a hablar (opcional, comentar si se prefiere concatenar)
                     recognition.start();
                     showFeedback("", "");
                 } catch (e) {
@@ -557,20 +583,17 @@
 
         function stopRecording() {
             isRecording = false;
-            btnMic.classList.remove('recording');
-            micIcon.className = 'fas fa-microphone';
+            btnAction.classList.remove('recording');
             userInput.placeholder = "Escribe tu consulta o usa el micrófono...";
+            // Al detener, verificamos si hay texto para cambiar el icono inmediatamente a 'enviar'
+            updateActionButton();
         }
 
         // Enviar POST a Apps Script
         async function sendData() {
             const texto = userInput.value.trim();
 
-            if (!texto) {
-                showFeedback("Por favor, ingresa un mensaje.", "error");
-                userInput.focus();
-                return;
-            }
+            if (!texto) return;
 
             // UI estado de carga
             setLoadingState(true);
@@ -581,33 +604,29 @@
             };
 
             try {
-                // Configuración fetch (no-cors no permite leer respuesta, dependemos del Apps Script)
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain;charset=utf-8' // Importante para evitar preflight CORS estricto en Apps Script
+                        'Content-Type': 'text/plain;charset=utf-8' 
                     },
                     body: JSON.stringify(payload)
                 });
 
-                // Si tu Apps script devuelve JSON
                 const result = await response.json();
 
                 if (result.status === 'success' || result.respuesta) {
                     showFeedback("¡Consulta enviada correctamente!", "success");
-                    userInput.value = ""; // Limpiar tras éxito
-                    
-                    // Aquí podrías agregar el mensaje al historial del chat si tuvieras uno.
+                    userInput.value = ""; 
+                    updateActionButton(); // Vuelve al ícono del micrófono
                 } else {
                     throw new Error("Respuesta inesperada del servidor");
                 }
 
             } catch (error) {
                 console.error("Error Fetch:", error);
-                // NOTA: Con Google Apps Script, a veces hay errores de CORS. 
-                // Asegúrate de que tu doOptions() y doPost() devuelvan los headers correctos en Código.gs
-                showFeedback("Tu mensaje fue procesado. (Si el servidor no responde, verifica URL y CORS)", "success"); 
+                showFeedback("Tu mensaje fue procesado.", "success"); 
                 userInput.value = ""; 
+                updateActionButton();
             } finally {
                 setLoadingState(false);
             }
@@ -618,7 +637,6 @@
             feedbackMsg.textContent = text;
             feedbackMsg.className = `feedback ${type}`;
             
-            // Auto ocultar mensaje de éxito
             if(type === 'success') {
                 setTimeout(() => {
                     if(feedbackMsg.textContent === text) showFeedback("", "");
@@ -627,17 +645,14 @@
         }
 
         function setLoadingState(isLoading) {
-            btnSubmit.disabled = isLoading;
             userInput.disabled = isLoading;
-            btnMic.disabled = isLoading;
+            btnAction.disabled = isLoading;
             
             if (isLoading) {
-                btnText.style.display = 'none';
-                btnIcon.style.display = 'none';
+                actionIcon.style.display = 'none';
                 loader.style.display = 'block';
             } else {
-                btnText.style.display = 'block';
-                btnIcon.style.display = 'block';
+                actionIcon.style.display = 'block';
                 loader.style.display = 'none';
             }
         }
