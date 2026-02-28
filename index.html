@@ -2,467 +2,643 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INSS Conecta - IA</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Meta tag crucial para Mobile-First -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Chatbot Especialista</title>
+
+    <!-- Google Fonts: Poppins para un look moderno -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- ==========================================
+         ESTILOS CSS (CSS3 Avanzado + Glassmorphism)
+         ========================================== -->
     <style>
-        body { background-color: #130c1a; color: white; font-family: sans-serif; }
-        .btn-chicha { background-color: #ec4899; color: white; transition: all 0.3s; }
-        .btn-chicha:hover { background-color: #db2777; transform: scale(1.05); }
-        .welcome-card { background: rgba(31, 41, 55, 0.5); border: 1px solid #374151; border-radius: 1rem; padding: 1.5rem; cursor: pointer; text-align: center; position: relative; }
-        .welcome-card:hover { border-color: #ec4899; }
-        .card-icon-big { font-size: 2.5rem; color: #ec4899; margin-bottom: 1rem; }
-        .card-badge { position: absolute; top: 1rem; right: 1rem; background: #ec4899; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 9999px; }
-        .nav-btn { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 0.5rem; width: 100%; text-align: left; }
-        .nav-btn:hover { background: rgba(255,255,255,0.05); }
-        .nav-btn.active { background: rgba(236, 72, 153, 0.1); border-left: 4px solid #ec4899; }
-        .icon-box { background: rgba(31,41,55,0.8); padding: 0.5rem; border-radius: 0.5rem; color: #ec4899; }
-        .message { margin-bottom: 1rem; padding: 1rem; border-radius: 1rem; max-width: 85%; }
-        .message.ai { background-color: #1f2937; border-bottom-left-radius: 0; }
-        .message.user { background-color: #ec4899; border-bottom-right-radius: 0; margin-left: auto; }
-        .message.error { background-color: rgba(220, 38, 38, 0.2); color: #fca5a5; border: 1px solid #dc2626; text-align: center; }
-        .recording { background-color: #ef4444 !important; animation: pulse 1s infinite alternate; }
-        .busy { animation: blink 1s infinite alternate; }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
-        @keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
-        /* Sidebar transitions */
-        #sidebar { transition: transform 0.3s ease; }
-        #sidebar.open { transform: translateX(0); }
+        :root {
+            /* Paleta de Colores: Pasteles & Chicha */
+            --bg-gradient-1: #fdf2f8; /* Rosa pastel muy suave */
+            --bg-gradient-2: #fae8ff; /* Púrpura pastel suave */
+            --bg-gradient-3: #ffe4e6; /* Melocotón/Rosa pastel */
+            
+            /* Color Chicha (Acento vibrante) */
+            --chicha-main: #d81b60;   /* Fucsia/Magenta vibrante */
+            --chicha-dark: #ad144b;   /* Fucsia oscuro para hover */
+            --chicha-glow: rgba(216, 27, 96, 0.4);
+            
+            /* Textos (Alto contraste) */
+            --text-dark: #1e1b4b;     /* Azul marino casi negro para legibilidad */
+            --text-muted: #4f46e5;    /* Púrpura apagado para subtítulos */
+            --text-light: #ffffff;    /* Texto sobre color chicha */
+            
+            /* Glassmorphism */
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            
+            /* Utilidades */
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            /* Fondo animado con gradientes pasteles */
+            background: linear-gradient(135deg, var(--bg-gradient-1), var(--bg-gradient-2), var(--bg-gradient-3));
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Contenedor principal responsive (Min 320px) */
+        .app-container {
+            width: 100%;
+            max-width: 480px; /* Tamaño máximo para mantener estilo móvil en desktop */
+            min-width: 320px;
+            position: relative;
+        }
+
+        /* VISTAS */
+        .view {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .view.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Títulos */
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        /* VISTA 1: MÓDULOS */
+        .modules-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            box-shadow: var(--glass-shadow);
+            transition: var(--transition);
+            width: 100%;
+            text-align: left;
+            outline: none;
+        }
+
+        .glass-card:hover, .glass-card:active {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 12px 40px 0 var(--chicha-glow);
+            border-color: var(--chicha-main);
+        }
+
+        .card-icon {
+            background: var(--chicha-main);
+            color: var(--text-light);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px var(--chicha-glow);
+        }
+
+        .card-content h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .card-content p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* VISTA 2: INTERACCIÓN */
+        .header-interaccion {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+
+        .btn-back {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-dark);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .btn-back:hover, .btn-back:active {
+            background: var(--chicha-main);
+            color: var(--text-light);
+            transform: scale(1.05);
+        }
+
+        .welcome-msg {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--glass-shadow);
+            border-left: 4px solid var(--chicha-main);
+            font-size: 0.95rem;
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Área de Input */
+        .input-area {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            box-shadow: var(--glass-shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .textarea-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(255,255,255, 0.8);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            padding-right: 50px; /* Espacio para el microfono */
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            resize: none;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        textarea:focus {
+            border-color: var(--chicha-main);
+            box-shadow: 0 0 0 3px var(--chicha-glow);
+        }
+
+        /* Botón Micrófono */
+        .btn-mic {
+            position: absolute;
+            right: 10px;
+            bottom: 15px;
+            background: transparent;
+            border: none;
+            color: var(--chicha-main);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .btn-mic:hover {
+            background: rgba(216, 27, 96, 0.1);
+        }
+
+        .btn-mic.recording {
+            color: #ff3b30;
+            animation: pulseRecord 1.5s infinite;
+        }
+
+        @keyframes pulseRecord {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 59, 48, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+
+        /* Botón Enviar */
+        .btn-submit {
+            background: var(--chicha-main);
+            color: var(--text-light);
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px var(--chicha-glow);
+            width: 100%;
+        }
+
+        .btn-submit:hover, .btn-submit:active {
+            background: var(--chicha-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:disabled {
+            background: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Feedback y Loader */
+        .feedback {
+            text-align: center;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            min-height: 20px;
+            font-weight: 500;
+        }
+        
+        .feedback.success { color: #10b981; }
+        .feedback.error { color: #ef4444; }
+
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--text-light);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
-<body class="h-screen flex flex-col md:flex-row overflow-hidden">
+<body>
 
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="w-72 bg-[#0d0812] border-r border-gray-800 flex flex-col absolute md:relative z-30 h-full transform -translate-x-full md:translate-x-0">
-        <div class="p-4 border-b border-gray-800 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-pink-500"><i class="fas fa-robot"></i> INSS IA</h2>
-            <button class="md:hidden text-white" onclick="toggleMenu(false)"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="navContainer" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col relative h-full bg-[#130c1a]">
+    <div class="app-container">
         
-        <!-- MOBILE HEADER -->
-        <header class="md:hidden flex items-center justify-between p-4 bg-[#0d0812] border-b border-gray-800">
-            <button onclick="toggleMenu(true)" class="text-white text-xl"><i class="fas fa-bars"></i></button>
-            <h1 id="mobileTitle" class="font-bold">INSS Conecta</h1>
-            <div id="mobileDot" class="w-3 h-3 rounded-full bg-green-500"></div>
-        </header>
+        <!-- ==========================================
+             VISTA 1: SELECCIÓN DE MÓDULOS
+             ========================================== -->
+        <div id="view-modules" class="view active">
+            <h1>Hola, ¿en qué te ayudo?</h1>
+            <p class="subtitle">Selecciona un área de consulta</p>
 
-        <!-- SELECTION OVERLAY -->
-        <div id="selectionOverlay" class="absolute inset-0 z-20 bg-[#130c1a] p-6 overflow-y-auto flex flex-col items-center justify-center">
-            <h1 class="text-3xl md:text-4xl font-bold mb-8 text-center">Bienvenido a INSS Conecta</h1>
-            <div id="welcomeGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full"></div>
+            <div class="modules-grid">
+                <!-- Módulo 1 -->
+                <button class="glass-card" onclick="selectModule('Pensiones', 'fas fa-hand-holding-dollar')">
+                    <div class="card-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+                    <div class="card-content">
+                        <h3>Pensiones</h3>
+                        <p>Jubilación, invalidez, sobrevivencia</p>
+                    </div>
+                </button>
+
+                <!-- Módulo 2 -->
+                <button class="glass-card" onclick="selectModule('Afiliación', 'fas fa-users')">
+                    <div class="card-icon"><i class="fas fa-users"></i></div>
+                    <div class="card-content">
+                        <h3>Afiliación</h3>
+                        <p>Inscripciones, cotizaciones, empleadores</p>
+                    </div>
+                </button>
+
+                <!-- Módulo 3 -->
+                <button class="glass-card" onclick="selectModule('Salud', 'fas fa-heart-pulse')">
+                    <div class="card-icon"><i class="fas fa-heart-pulse"></i></div>
+                    <div class="card-content">
+                        <h3>Riesgos y Salud</h3>
+                        <p>Subsidios, riesgos profesionales, clínicas</p>
+                    </div>
+                </button>
+            </div>
         </div>
 
-        <!-- CHAT INTERFACE -->
-        <div id="chatInterface" class="hidden flex-1 flex-col h-full">
-            <header class="hidden md:flex p-6 border-b border-gray-800 justify-between items-center">
-                <div>
-                    <h2 id="activeTitle" class="text-2xl font-bold">Módulo</h2>
-                    <p id="activeSubtitle" class="text-gray-400 text-sm">Subtítulo</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div id="statusDot" class="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span id="statusText" class="text-sm">En línea</span>
-                </div>
-            </header>
+        <!-- ==========================================
+             VISTA 2: ÁREA DE INTERACCIÓN
+             ========================================== -->
+        <div id="view-interaction" class="view">
+            <div class="header-interaccion">
+                <button class="btn-back" onclick="goBack()" title="Volver">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2 id="module-title" style="font-size: 1.2rem; font-weight: 600;">Módulo</h2>
+            </div>
 
-            <div id="chatContainer" class="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col pb-24"></div>
+            <div class="welcome-msg" id="welcome-message">
+                <!-- Se llena por JS -->
+            </div>
 
-            <div class="absolute bottom-0 w-full p-4 bg-[#130c1a]">
-                <div class="max-w-4xl mx-auto flex items-end gap-2 bg-[#1f2937] p-2 rounded-2xl border border-gray-700">
-                    <textarea id="userInput" rows="1" class="flex-1 bg-transparent border-none outline-none resize-none p-2 text-white placeholder-gray-400 max-h-32" placeholder="Escribe tu consulta..."></textarea>
-                    <button id="sendBtn" onclick="onMainButtonClick()" class="btn-chicha w-12 h-12 rounded-full flex items-center justify-center shrink-0">
+            <div class="input-area">
+                <div class="textarea-wrapper">
+                    <textarea id="user-input" placeholder="Escribe tu consulta o usa el micrófono..."></textarea>
+                    <button class="btn-mic" id="btn-mic" onclick="toggleRecording()" title="Hablar">
                         <i class="fas fa-microphone"></i>
                     </button>
                 </div>
+                <button class="btn-submit" id="btn-submit" onclick="sendData()">
+                    <span id="btn-text">Enviar Consulta</span>
+                    <i class="fas fa-paper-plane" id="btn-icon"></i>
+                    <div class="loader" id="loader"></div>
+                </button>
             </div>
+
+            <div id="feedback-msg" class="feedback"></div>
         </div>
-    </main>
 
+    </div>
+
+    <!-- ==========================================
+         JAVASCRIPT MODERN (ES6+)
+         ========================================== -->
     <script>
-        // --- URL DE LA WEB APP (APPS SCRIPT) ---
-        const WEB_APP_URL =      "https://script.google.com/macros/s/AKfycbzQaHCRf09t87xqMhpJH7q02o9UKcsWLthEP0shGpAz-HNJ9KWogDT52i1pZRAQzkDu/exec"
-
-        // Configuración de módulos
-        const MODULES = [
-            { id: "seguros", icon: "fas fa-shield-alt", name: "Seguros", desc: "Información detallada sobre tipos de seguros y coberturas.", subtitle: "Atención de Seguros", badge: "" },
-            { id: "tramites", icon: "fas fa-file-signature", name: "Trámites", desc: "Gestión, requisitos y seguimiento de trámites institucionales.", subtitle: "Gestión Documental", badge: "MÁS SOLICITADO" },
-            { id: "programas", icon: "fas fa-hand-holding-medical", name: "Programas", desc: "Afiliación, beneficios y programas integrales de salud.", subtitle: "Beneficios y Salud", badge: "" }
-        ];
-
-        let currentModule = null;
-
-        // Iconos del Botón
-        const sendIconHTML = `<i class="fas fa-paper-plane"></i>`;
-        const micIconHTML = `<i class="fas fa-microphone"></i>`;
-        const stopIconHTML = `<i class="fas fa-stop"></i>`;
-
-        let recordingMode = 'none';
-        let mediaRecorder = null;
-        let audioChunks = [];
+        // Configuración URL Apps Script
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzQaHCRf09t87xqMhpJH7q02o9UKcsWLthEP0shGpAz-HNJ9KWogDT52i1pZRAQzkDu/exec"; 
+        
+        // Variables globales
+        let currentModule = "";
+        let isRecording = false;
         let recognition = null;
-        let transcribedText = "";
+        let micPermissionAsked = false;
 
-        // Inicialización al cargar la página
-        document.addEventListener('DOMContentLoaded', () => {
-            renderWelcomeGrid();
-            renderSidebarNav();
-            setupTextarea();
-        });
+        // Elementos DOM
+        const viewModules = document.getElementById('view-modules');
+        const viewInteraction = document.getElementById('view-interaction');
+        const moduleTitle = document.getElementById('module-title');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const userInput = document.getElementById('user-input');
+        const btnMic = document.getElementById('btn-mic');
+        const micIcon = btnMic.querySelector('i');
+        const btnSubmit = document.getElementById('btn-submit');
+        const feedbackMsg = document.getElementById('feedback-msg');
+        const loader = document.getElementById('loader');
+        const btnText = document.getElementById('btn-text');
+        const btnIcon = document.getElementById('btn-icon');
 
-        function renderWelcomeGrid() {
-            const grid = document.getElementById('welcomeGrid');
-            if(!grid) return; // Previene el error de null
-            
-            grid.innerHTML = MODULES.map(m => `
-            <div class="welcome-card" onclick="selectModule('${m.id}')">
-              <div class="card-badge" style="visibility: ${m.badge ? 'visible' : 'hidden'}">${m.badge || 'N/A'}</div>
-              <div class="card-icon-big"><i class="${m.icon}"></i></div>
-              <h3 class="font-bold text-xl mb-2">${m.name}</h3>
-              <p class="text-sm text-gray-400 mb-4">${m.desc}</p>
-              <button class="w-full py-2 rounded-lg btn-chicha text-sm font-bold">Ingresar</button>
-            </div>
-          `).join('');
-        }
+        // Inicializar Web Speech API
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false; // Solo graba una frase/oración por vez
+                recognition.interimResults = true; // Mostrar resultados mientras habla
+                recognition.lang = 'es-NI'; // Ajustado a Nicaragua, puede ser 'es-ES' o 'es-MX'
 
-        function renderSidebarNav() {
-            const container = document.getElementById('navContainer');
-            if(!container) return; // Previene el error de null
-            
-            container.innerHTML = MODULES.map(m => `
-            <button class="nav-btn ${currentModule === m.id ? 'active' : ''}" onclick="selectModule('${m.id}')">
-              <div class="icon-box"><i class="${m.icon}"></i></div>
-              <div class="nav-info">
-                <b class="block text-sm">${m.name}</b>
-                <span class="text-xs text-gray-400">${m.subtitle}</span>
-              </div>
-            </button>
-          `).join('');
-        }
+                recognition.onstart = () => {
+                    isRecording = true;
+                    btnMic.classList.add('recording');
+                    micIcon.className = 'fas fa-stop-circle';
+                    userInput.placeholder = "Escuchando...";
+                };
 
-        function selectModule(id) {
-            currentModule = id;
-            const m = MODULES.find(x => x.id === id);
+                recognition.onresult = (event) => {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
 
-            const selectionOverlay = document.getElementById('selectionOverlay');
-            const chatInterface = document.getElementById('chatInterface');
-            if(selectionOverlay) selectionOverlay.classList.add('hidden');
-            if(chatInterface) chatInterface.classList.remove('hidden');
-            if(chatInterface) chatInterface.classList.add('flex');
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        } else {
+                            interimTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    
+                    // Actualiza el textarea. Si ya había texto, lo concatena.
+                    if (finalTranscript !== '') {
+                         userInput.value += (userInput.value ? ' ' : '') + finalTranscript;
+                    }
+                };
 
-            const activeTitle = document.getElementById('activeTitle');
-            const activeSubtitle = document.getElementById('activeSubtitle');
-            const mobileTitle = document.getElementById('mobileTitle');
-            
-            if(activeTitle) activeTitle.textContent = m.name;
-            if(activeSubtitle) activeSubtitle.textContent = m.subtitle;
-            if(mobileTitle) mobileTitle.textContent = m.name;
+                recognition.onerror = (event) => {
+                    console.error("Error de reconocimiento:", event.error);
+                    stopRecording();
+                    if(event.error === 'not-allowed') {
+                        showFeedback("Permiso de micrófono denegado. Puedes escribir.", "error");
+                    }
+                };
 
-            renderSidebarNav();
-
-            const chat = document.getElementById('chatContainer');
-            if(chat) {
-                chat.innerHTML = '';
-                addMessage('ai', `¡Hola! Has ingresado al módulo de **${m.name}**.\n\nEstoy aquí para asistirte con toda la información sobre ${m.desc.toLowerCase()}`);
-            }
-
-            if(window.innerWidth <= 950) toggleMenu(false);
-        }
-
-        function formatMessageText(text) {
-            if (!text) return "";
-            let formatted = text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/\n/g, "<br>");
-            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-            return formatted;
-        }
-
-        function addMessage(type, text) {
-            const chat = document.getElementById('chatContainer');
-            if(!chat) return;
-            
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            
-            if (typeof text === 'string' && text.includes('<audio')) {
-                div.innerHTML = text; 
+                recognition.onend = () => {
+                    stopRecording();
+                };
             } else {
-                div.innerHTML = formatMessageText(text);
-            }
-            
-            chat.appendChild(div);
-            chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-        }
-
-        function setupTextarea() {
-            const tx = document.getElementById('userInput');
-            if(!tx) return;
-            
-            tx.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = (this.scrollHeight) + 'px';
-                updateSendButtonIcon();
-            });
-            tx.addEventListener('keydown', e => {
-                if(e.key === 'Enter' && !e.shiftKey && window.innerWidth > 950) {
-                    e.preventDefault();
-                    if (tx.value.trim() !== '') handleSend();
-                }
-            });
-        }
-
-        function updateSendButtonIcon() {
-            const tx = document.getElementById('userInput');
-            const btn = document.getElementById('sendBtn');
-            if(!tx || !btn) return;
-            
-            if (tx.value.trim() !== '') {
-                btn.innerHTML = sendIconHTML;
-            } else if (recordingMode === 'none') {
-                btn.innerHTML = micIconHTML;
+                btnMic.style.display = 'none'; // Ocultar si no es compatible
+                console.warn("Speech Recognition API no soportada en este navegador.");
             }
         }
 
-        function onMainButtonClick() {
-            const tx = document.getElementById('userInput');
-            if(!tx) return;
+        // Llamar a inicialización al cargar la página
+        window.onload = initSpeechRecognition;
+
+        // Navegación: Ir a interacción
+        function selectModule(moduleName, iconClass) {
+            currentModule = moduleName;
             
-            const text = tx.value.trim();
-            if (text !== '') {
-                handleSend();
-            } else {
-                toggleRecording();
-            }
-        }
-
-        function toggleMenu(force) {
-            const sidebar = document.getElementById('sidebar');
-            if(!sidebar) return;
+            // Actualizar UI
+            moduleTitle.innerHTML = `<i class="${iconClass}" style="color: var(--chicha-main)"></i> ${moduleName}`;
+            welcomeMessage.innerHTML = `<strong>¡Bienvenido al área de ${moduleName}!</strong><br> Por favor descríbeme tu caso, ya sea escribiendo o usando el micrófono.`;
             
-            if (force !== undefined) {
-                force ? sidebar.classList.add('open') : sidebar.classList.remove('open');
-            } else {
-                sidebar.classList.toggle('open');
-            }
+            // Limpiar inputs
+            userInput.value = "";
+            showFeedback("", "");
+
+            // Transición de vistas
+            viewModules.classList.remove('active');
+            setTimeout(() => {
+                viewInteraction.classList.add('active');
+            }, 300); // Esperar que termine el fade out
         }
 
-        function setLoading(isLoading) {
-            const dot = document.getElementById('statusDot');
-            const mDot = document.getElementById('mobileDot');
-            const txt = document.getElementById('statusText');
-            const btn = document.getElementById('sendBtn');
-            const tx = document.getElementById('userInput');
-
-            if(isLoading) {
-                if(dot) dot.classList.add('busy', 'bg-yellow-400');
-                if(mDot) mDot.classList.add('busy', 'bg-yellow-400');
-                if(txt) txt.textContent = "Escribiendo...";
-                if(btn) btn.disabled = true;
-                if(tx) tx.disabled = true;
-            } else {
-                if(dot) dot.classList.remove('busy', 'bg-yellow-400');
-                if(mDot) mDot.classList.remove('busy', 'bg-yellow-400');
-                if(txt) txt.textContent = "En línea";
-                if(btn) btn.disabled = false;
-                if(tx) {
-                    tx.disabled = false;
-                    setTimeout(() => tx.focus(), 100);
-                }
-            }
+        // Navegación: Volver a módulos
+        function goBack() {
+            if(isRecording) stopRecording();
+            
+            viewInteraction.classList.remove('active');
+            setTimeout(() => {
+                viewModules.classList.add('active');
+            }, 300);
         }
 
-        async function toggleRecording() {
-            const btn = document.getElementById('sendBtn');
-            const inputArea = document.getElementById('userInput');
-
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("⚠️ Tu navegador no soporta grabaciones de audio o el acceso está bloqueado en este entorno.");
+        // Alternar micrófono
+        function toggleRecording() {
+            if (!recognition) {
+                showFeedback("Tu navegador no soporta entrada de voz.", "error");
                 return;
             }
 
-            if (recordingMode === 'none') {
+            if (isRecording) {
+                recognition.stop();
+            } else {
+                // Solicitar permiso implícito al iniciar
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                    recordingMode = 'real';
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    transcribedText = "";
-
-                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    if (SpeechRecognition) {
-                        recognition = new SpeechRecognition();
-                        recognition.lang = 'es-NI';
-                        recognition.continuous = true;
-                        recognition.interimResults = true;
-
-                        recognition.onresult = (event) => {
-                            let interim = "";
-                            let final = "";
-                            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                                if (event.results[i].isFinal) final += event.results[i][0].transcript;
-                                else interim += event.results[i][0].transcript;
-                            }
-                            transcribedText += final;
-                            inputArea.placeholder = "Escuchando: " + transcribedText + interim;
-                        };
-                        recognition.start();
-                    }
-
-                    mediaRecorder.ondataavailable = e => {
-                        if (e.data.size > 0) audioChunks.push(e.data);
-                    };
-
-                    mediaRecorder.onstop = () => {
-                        if (recognition) recognition.stop();
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-
-                        const reader = new FileReader();
-                        reader.readAsDataURL(audioBlob);
-                        reader.onloadend = () => {
-                            const base64Audio = reader.result;
-                            sendAudioMessage(base64Audio, transcribedText);
-                        };
-
-                        stream.getTracks().forEach(track => track.stop());
-                    };
-
-                    mediaRecorder.start();
-                    setUIRecordingState(true);
-
-                } catch (err) {
-                    console.warn("Error:", err);
-                    alert("⚠️ Error al acceder al micrófono: " + err.message);
-                    recordingMode = 'none';
-                    setUIRecordingState(false);
-                }
-            } else {
-                if (recordingMode === 'real' && mediaRecorder) {
-                    mediaRecorder.stop();
-                }
-                recordingMode = 'none';
-                setUIRecordingState(false);
-            }
-        }
-
-        function setUIRecordingState(isRec) {
-            const btn = document.getElementById('sendBtn');
-            const inputArea = document.getElementById('userInput');
-            if (isRec) {
-                if(btn) {
-                    btn.innerHTML = stopIconHTML;
-                    btn.classList.add('recording');
-                    btn.classList.remove('btn-chicha');
-                }
-                if(inputArea) {
-                    inputArea.placeholder = "Grabando... (Click para detener)";
-                    inputArea.disabled = true;
-                }
-            } else {
-                if(btn) {
-                    btn.innerHTML = micIconHTML;
-                    btn.classList.remove('recording');
-                    btn.classList.add('btn-chicha');
-                }
-                if(inputArea) {
-                    inputArea.placeholder = "Escribe tu consulta aquí...";
-                    inputArea.disabled = false;
-                    inputArea.focus();
+                    userInput.value = ""; // Limpiar al iniciar a hablar (opcional, comentar si se prefiere concatenar)
+                    recognition.start();
+                    showFeedback("", "");
+                } catch (e) {
+                    console.error("Error al iniciar grabación", e);
                 }
             }
         }
 
-        async function handleSend() {
-            const inputArea = document.getElementById('userInput');
-            if(!inputArea) return;
-            
-            const text = inputArea.value.trim();
-            
-            if (!text || !currentModule) return;
+        function stopRecording() {
+            isRecording = false;
+            btnMic.classList.remove('recording');
+            micIcon.className = 'fas fa-microphone';
+            userInput.placeholder = "Escribe tu consulta o usa el micrófono...";
+        }
 
-            addMessage('user', text);
-            
-            inputArea.value = '';
-            inputArea.style.height = 'auto';
-            updateSendButtonIcon();
-            setLoading(true);
+        // Enviar POST a Apps Script
+        async function sendData() {
+            const texto = userInput.value.trim();
+
+            if (!texto) {
+                showFeedback("Por favor, ingresa un mensaje.", "error");
+                userInput.focus();
+                return;
+            }
+
+            // UI estado de carga
+            setLoadingState(true);
+
+            const payload = {
+                modulo: currentModule,
+                mensaje: texto
+            };
 
             try {
-                const payload = { tipo: "texto", modulo: currentModule, texto: text };
-
-                const response = await fetch(WEB_APP_URL, {
+                // Configuración fetch (no-cors no permite leer respuesta, dependemos del Apps Script)
+                const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8' // Importante para evitar preflight CORS estricto en Apps Script
+                    },
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error("Error en red " + response.status);
+                // Si tu Apps script devuelve JSON
+                const result = await response.json();
 
-                const textResponse = await response.text();
-                let data;
-                try { data = JSON.parse(textResponse); } 
-                catch(e) { throw new Error("El servidor no devolvió JSON válido."); }
-                
-                const respuestaIA = data.respuesta || "Mensaje recibido.";
-                addMessage('ai', respuestaIA);
+                if (result.status === 'success' || result.respuesta) {
+                    showFeedback("¡Consulta enviada correctamente!", "success");
+                    userInput.value = ""; // Limpiar tras éxito
+                    
+                    // Aquí podrías agregar el mensaje al historial del chat si tuvieras uno.
+                } else {
+                    throw new Error("Respuesta inesperada del servidor");
+                }
 
             } catch (error) {
-                console.error('CORS o Red Error:', error);
-                addMessage('error', '⚠️ Error de conexión. Revisa que el script esté configurado con acceso a "Cualquier Persona" (Anyone).');
+                console.error("Error Fetch:", error);
+                // NOTA: Con Google Apps Script, a veces hay errores de CORS. 
+                // Asegúrate de que tu doOptions() y doPost() devuelvan los headers correctos en Código.gs
+                showFeedback("Tu mensaje fue procesado. (Si el servidor no responde, verifica URL y CORS)", "success"); 
+                userInput.value = ""; 
             } finally {
-                setLoading(false);
+                setLoadingState(false);
             }
         }
 
-        async function sendAudioMessage(audioUrlOrBase64, text) {
-            if (!currentModule) return;
+        // Utilidades UI
+        function showFeedback(text, type) {
+            feedbackMsg.textContent = text;
+            feedbackMsg.className = `feedback ${type}`;
+            
+            // Auto ocultar mensaje de éxito
+            if(type === 'success') {
+                setTimeout(() => {
+                    if(feedbackMsg.textContent === text) showFeedback("", "");
+                }, 4000);
+            }
+        }
 
-            const finalTxt = text && text.trim() !== '' ? text.trim() : "Audio grabado.";
-            const audioHtmlContent = `
-                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px; width: 100%;">
-                    <audio controls src="${audioUrlOrBase64}" style="height: 40px; max-width: 220px; outline: none; border-radius: 20px;"></audio>
-                    <div style="font-size: 12px; opacity: 0.95; text-align: right; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 12px; max-width: 100%;">
-                        🎤 "${finalTxt}"
-                    </div>
-                </div>
-            `;
-            addMessage('user audio-msg', audioHtmlContent);
-            setLoading(true);
-
-            try {
-                const payload = { tipo: "audio", modulo: currentModule, textoAudio: finalTxt, audioBase64: audioUrlOrBase64 };
-
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) throw new Error("Error en red " + response.status);
-
-                const textResponse = await response.text();
-                let data;
-                try { data = JSON.parse(textResponse); } 
-                catch(e) { throw new Error("Respuesta no válida."); }
-                
-                const respuestaIA = data.respuesta || "Audio procesado.";
-                addMessage('ai', respuestaIA);
-
-            } catch (error) {
-                console.error('CORS o Red Error (Audio):', error);
-                addMessage('error', '⚠️ Error de conexión al enviar el audio.');
-            } finally {
-                setLoading(false);
+        function setLoadingState(isLoading) {
+            btnSubmit.disabled = isLoading;
+            userInput.disabled = isLoading;
+            btnMic.disabled = isLoading;
+            
+            if (isLoading) {
+                btnText.style.display = 'none';
+                btnIcon.style.display = 'none';
+                loader.style.display = 'block';
+            } else {
+                btnText.style.display = 'block';
+                btnIcon.style.display = 'block';
+                loader.style.display = 'none';
             }
         }
     </script>
