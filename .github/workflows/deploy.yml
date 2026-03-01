@@ -1,0 +1,44 @@
+name: Deploy to GitHub Pages
+
+# Este script se ejecuta cada vez que subes cambios a la rama principal ("main")
+on:
+  push:
+    branches: ["main", "master"] 
+  workflow_dispatch:
+
+# Permisos necesarios para publicar en GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # ESTE ES EL PASO MÁGICO: Reemplaza el texto falso por el secreto
+      - name: Inyectar URL Secreta en index.html
+        run: |
+          sed -i 's|{{WEB_APP_URL_SECRET}}|${{ secrets.WEB_APP_URL_SECRET }}|g' index.html
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Subir artefactos
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.' # Sube todos los archivos de tu repositorio
+          
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
