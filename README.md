@@ -1,1 +1,1 @@
-Proyecto de Curso IA- UCEM
+Proyecto de Curso IA- UCEM 2026
