@@ -1,6 +1,6 @@
 *Proyecto de Curso IA- UCEM 2026*
 
-Integrantes:
+*Integrantes:*
 -Haniel Orozco
 -William Guzman
 -Angel Samuel
